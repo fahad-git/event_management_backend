@@ -1,10 +1,6 @@
 var mysql = require('mysql')
-var connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'ems'
-})
+const config = require('./config');
+var connection = mysql.createConnection(config.sqlConfigurations)
 
 connection.connect(function(err) {
   if (err) 
@@ -15,9 +11,10 @@ connection.connect(function(err) {
   console.log("Database Connected Successfully!");
 });
 
-
-const runGetQuery = (query, callback) => {
+exports.runGetQuery = function (query, callback){
     connection.query(query, callback);
-}
+};
 
-module.exports = runGetQuery;
+exports.runInsertQuery = function (query, params, callback){
+  connection.query(query, [params], callback);
+};

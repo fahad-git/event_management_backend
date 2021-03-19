@@ -6,6 +6,7 @@ router.use(bodyParser.json());
 
 var authenticate = require('./../authenticate');
 
+const dbHandler = require('./../dbHandler');
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
@@ -13,22 +14,29 @@ router.get('/', function(req, res, next) {
   next();
 });
 
-
 router.post('/signup', (req, res, next) => {
   const username = req.body.username;
   const password = req.body.password;
-  const role = req.body.role;
   const name = req.body.name;
   const phone = req.body.phone;
   const address = req.body.address;
 
+  let query = "INSERT INTO login (username, password, role, user_id) VALUES ?";
+  let values = [
+    [username, password, "user", 1]
+  ]
 
-  User.register(new User({username: req.body.username}), 
-    req.body.password, (err, user) => {
+  const callback = (err, result) => {
     if(err) {
-      res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
-      res.json({err: err});
+      if(err.code === "ER_DUP_ENTRY"){
+        res.statusCode = 409;
+        res.setHeader('Content-Type', 'application/json');
+        res.json({success: false, status: 'Registration Failed', err:"User already exist"});
+      }else{
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.json({success: false, status: 'Registration Failed', err: err});
+      }
     }
     else {
       passport.authenticate('local')(req, res, () => {
@@ -37,20 +45,33 @@ router.post('/signup', (req, res, next) => {
         res.json({success: true, status: 'Registration Successful!'});
       });
     }
-  });
+  }
+
+  dbHandler.runInsertQuery(query, values, callback);
+
 });
 
 router.post('/login', passport.authenticate('local'), (req, res) => {
   const user = req.user;
   var token = authenticate.getToken({id: req.user.id});
-  user["token"] = token;  
+  user["token"] = token;
+  user.tokenExpiry = 3600;
   res.statusCode = 200;
   res.setHeader('Content-Type', 'application/json');
   res.json({success: true, user: user, status: 'You are successfully logged in!'});
 });
 
+router.get('/token', authenticate.verifyUser, (req, res) => {
+  const user = req.user;
+  var token = authenticate.getToken({id: req.user.id});
+  user["token"] = token;
+  user.tokenExpiry = 3600;
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'application/json');
+  res.json({success: true, user: user, status: 'Your session has refreshed'});
+});
 
-router.get('/logout',authenticate.verifyUser, (req, res, next) => {
+router.get('/logout', authenticate.verifyUser, (req, res, next) => {
   if (req.user) {
     // req.session.destroy();
     // res.clearCookie('session-id');

@@ -1,10 +1,7 @@
-// var cookieParser = require('cookie-parser');
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 const cors = require('./routes/cors');
-// var session = require('express-session');
-// var FileStore = require('session-file-store')(session);
 
 var logger = require('morgan');
 
@@ -15,8 +12,7 @@ var authenticate = require('./authenticate');
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var eventsRouter = require('./routes/events');
-
-// const { signedCookie } = require('cookie-parser');
+var dashboardsRouter = require('./routes/dashboards');
 
 var app = express();
 
@@ -24,22 +20,12 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-// app.options('/', cors())
+//cross origin resource sharing (CORS) implementation
+app.options('/', cors.corsWithOptions);
 app.use(cors.corsWithOptions);
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-// THE Secret key will be user by cookie parser to encrypt cookies
-// app.use(cookieParser("12345-67890-09876-54321"));
-
-
-// app.use(session({
-//   name: 'session-id',
-//   secret: '12345-67890-09876-54321',
-//   saveUninitialized: false,
-//   resave: false,
-//   store: new FileStore()
-// }));
 
 
 app.use(passport.initialize());
@@ -50,6 +36,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/events', eventsRouter);
+app.use('/dashboards', dashboardsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -68,6 +55,23 @@ app.use(function(err, req, res, next) {
 });
 
 module.exports = app;
+
+// var cookieParser = require('cookie-parser');
+// var session = require('express-session');
+// var FileStore = require('session-file-store')(session);
+// const { signedCookie } = require('cookie-parser');
+
+// THE Secret key will be user by cookie parser to encrypt cookies
+// app.use(cookieParser("12345-67890-09876-54321"));
+
+
+// app.use(session({
+//   name: 'session-id',
+//   secret: '12345-67890-09876-54321',
+//   saveUninitialized: false,
+//   resave: false,
+//   store: new FileStore()
+// }));
 
 
 // Authorization
