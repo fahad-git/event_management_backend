@@ -7,6 +7,8 @@ const dbHandler = require('./../dbHandler');
 
 var authenticate = require('./../authenticate');
 
+var emailServer = require('./email')
+
 const tmp = [{
     "id":1,
     "name":"Exams Sites",
@@ -76,6 +78,54 @@ router.route('/user/:eventId')
         res.json(obj);
 });
 
+router.route('/user/options/:eventId')
+.get(authenticate.verifyUser, (req, res, next) => {
+        obj = {
+            1: {
+                "event" : {
+                "Catwalk":"Catwalk",
+                "HelpDesk":"HelpDesk",
+                "Exhibitors":"Exhibitors",
+                "Webinar":"Webinar"
+                },
+                "role":"host"
+            },
+            2: {
+                "event":{
+                "Catwalk":"Fashion Show",
+                "HelpDesk":null,
+                "Exhibitors":"Exhibitors",
+                "Webinar":"Webinar"
+                },
+                "role":"organizer"
+            },
+            3: {
+                "event":{
+                "Catwalk":"Catwalk",
+                "HelpDesk":"HelpDesk",
+                "Exhibitors":"Shops",
+                "Webinar":null
+                },
+                "role":"attendee"
+            }
+
+        }    
+
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(obj[req.params.eventId]);
+});
+
+router.route('/user/chat')
+.post(authenticate.verifyUser, (req, res, next) => {
+
+    const response = emailServer.sendMail(req.body.to, req.body.subject, req.body.body);
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.json(response);
+});
+
 
 router.route('/admin')
 .get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
@@ -94,6 +144,7 @@ router.route('/admin')
     // }
     // runGetQuery(query, callback);
 });
+
 
 
 module.exports = router;
