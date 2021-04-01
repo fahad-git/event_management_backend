@@ -15,15 +15,17 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/signup', (req, res, next) => {
+  const name = req.body.name;
+  const email = req.body.email;
+  const userType = req.body.userType;
   const username = req.body.username;
   const password = req.body.password;
-  const name = req.body.name;
   const phone = req.body.phone;
   const address = req.body.address;
 
-  let query = "INSERT INTO login (username, password, role, user_id) VALUES ?";
+  let query = "INSERT INTO user (name, email, username, userType, password, phone, address) VALUES ?";
   let values = [
-    [username, password, "user", 1]
+    [name, email, username, userType, password, phone, address]
   ]
 
   const callback = (err, result) => {
