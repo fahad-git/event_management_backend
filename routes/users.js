@@ -15,18 +15,18 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/signup', (req, res, next) => {
-  const name = req.body.name;
-  const email = req.body.email;
-  const userType = req.body.userType;
-  const username = req.body.username;
-  const password = req.body.password;
-  const phone = req.body.phone;
-  const address = req.body.address;
+  // const name = req.body.name;
+  // const email = req.body.email;
+  // const userType = req.body.userType;
+  // const username = req.body.username;
+  // const password = req.body.password;
+  // const phone = req.body.phone;
+  // const address = req.body.address;
 
-  let query = "INSERT INTO user (name, email, username, userType, password, phone, address) VALUES ?";
-  let values = [
-    [name, email, username, userType, password, phone, address]
-  ]
+  // let query = "INSERT INTO user (name, email, username, userType, password, phone, address) VALUES ?";
+  // let values = [
+  //   [name, email, username, userType, password, phone, address]
+  // ]
 
   const callback = (err, result) => {
     if(err) {
@@ -49,23 +49,61 @@ router.post('/signup', (req, res, next) => {
     }
   }
 
-  dbHandler.runInsertQuery(query, values, callback);
+  console.log(req.body);
+  // dbHandler.runInsertQuery(query, values, callback);
+  dbHandler.registerUser(req.body, callback);
+});
+router.post('/check-username',  (req, res) => {
+    query = "select * from user where username = '" + req.body.username + "';";
+    console.log(req.body);
+    console.log(query)
+    const callback = (err, rows, fields) => {
+      if(err) {
+          res.statusCode = 404;
+          res.setHeader('Content-Type', 'application/json');
+          res.json({success: false, status: 'Username validation failed', err:"Username already exist"});
+      }else if(rows.length > 0){
+        res.statusCode = 409;
+        res.setHeader('Content-Type', 'application/json');
+        res.json({success: false, status: 'Username Not Available', err:"Username already exist"});
+      }else{
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json({success: true, status: 'Username available'});
+      }
+    }
 
+    dbHandler.runGetQuery(query, callback);
 });
 
-router.post('/login', passport.authenticate('local'), (req, res) => {
-  const user = req.user;
-  var token = authenticate.getToken({id: req.user.id});
-  user["token"] = token;
-  user.tokenExpiry = 3600;
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'application/json');
-  res.json({success: true, user: user, status: 'You are successfully logged in!'});
+
+router.post('/login', (req, res) => {
+  passport.authenticate('local', (err, user, info) => {
+    if(err){
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      return res.json({success: false,  message: 'Error in database', err:err});
+    }
+    if(!user) { 
+      res.statusCode = 401;
+      res.setHeader('Content-Type', 'application/json');
+      return res.json({success: false,  message: info.message});
+    }
+
+    // const user = req.user;
+    delete user["password"];
+    var token = authenticate.getToken({username: user.username});
+    user["token"] = token;
+    user.tokenExpiry = 3600;
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    return res.json({success: true, user: user, message: 'You are successfully logged in!'});
+  })(req, res);
 });
 
 router.get('/token', authenticate.verifyUser, (req, res) => {
   const user = req.user;
-  var token = authenticate.getToken({id: req.user.id});
+  var token = authenticate.getToken({username: req.user.username});
   user["token"] = token;
   user.tokenExpiry = 3600;
   res.statusCode = 200;

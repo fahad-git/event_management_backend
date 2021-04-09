@@ -13,6 +13,9 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var eventsRouter = require('./routes/events');
 var dashboardsRouter = require('./routes/dashboards');
+var stallsRouter = require('./routes/stalls');
+var videosRouter = require('./routes/videos');
+var webinarRouter = require('./routes/webinars');
 
 var app = express();
 
@@ -37,6 +40,9 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/events', eventsRouter);
 app.use('/dashboards', dashboardsRouter);
+app.use('/stalls', stallsRouter);
+app.use('/videos', videosRouter);
+app.use('/webinars', webinarRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

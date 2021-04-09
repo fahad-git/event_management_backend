@@ -35,97 +35,114 @@ const tmp = [{
     "details":"This time of events is 4pm"
 }]
 
-
 router.route('/user')
 .get((req, res, next) => {
-    let query = "select * from events"
+    // let query = "select * from events"
 
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.json(tmp);
+    // res.statusCode = 200;
+    // res.setHeader('Content-Type', 'application/json');
+    // res.json(tmp);
     
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        // console.log(rows)
+        // console.log(fields);
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getAllEvents(callback);
+});
+
+router.route('/user/:userId')
+.get((req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        // console.log(rows)
+        // console.log(fields);
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getUpcomingEvents(req.params.userId, callback);
+});
+
+router.route('/user/organizing/:userId')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getOrganizingEventsByUserID(req.params.userId, callback);
+});
+
+router.route('/user/:eventId')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getEventById(req.params.eventId, callback);
+});
+
+router.route('/user/request')
+.post(authenticate.verifyUser, (req, res, next) => {
+    console.log(req.body);
+    res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json([]);
     // const callback = (err, rows, fields) => {
     //     if (err) {
     //       console.log(err)
     //       return;
     //     }
-    //     // console.log(rows)
-    //     // console.log(fields);
     //     res.statusCode = 200;
     //     res.setHeader('Content-Type', 'application/json');
     //     res.json(rows);
     // }
-    // dbHandler.runGetQuery(query, callback);
-});
+    // dbHandler.getEventById(req.params.eventId, callback);
+})
 
-router.route('/user/organizing')
-.get(authenticate.verifyUser, (req, res, next) => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(tmp);
-});
 
-router.route('/user/:eventId')
-.get(authenticate.verifyUser, (req, res, next) => {
-        let obj = {}
-        for(obj of tmp){
-            if(obj.id === parseInt(req.params.eventId) ){
-                break;
-            }
-        }
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(obj);
-});
 
 router.route('/user/options/:eventId')
 .get(authenticate.verifyUser, (req, res, next) => {
-        obj = {
-            1: {
-                "event" : {
-                "Catwalk":"Catwalk",
-                "HelpDesk":"HelpDesk",
-                "Exhibitors":"Exhibitors",
-                "Webinar":"Webinar"
-                },
-                "role":"host"
-            },
-            2: {
-                "event":{
-                "Catwalk":"Fashion Show",
-                "HelpDesk":null,
-                "Exhibitors":"Exhibitors",
-                "Webinar":"Webinar"
-                },
-                "role":"organizer"
-            },
-            3: {
-                "event":{
-                "Catwalk":"Catwalk",
-                "HelpDesk":"HelpDesk",
-                "Exhibitors":"Shops",
-                "Webinar":null
-                },
-                "role":"attendee"
+        const callback = (err, rows, fields) => {            
+            if (err) {
+              console.log(err)
+              return;
             }
-
-        }    
-
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(obj[req.params.eventId]);
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(rows);
+        }
+        dbHandler.getEventLobbyControls(req.params.eventId, req.user.user_Id, callback);
 });
+
 
 router.route('/user/chat')
 .post(authenticate.verifyUser, (req, res, next) => {
-
     const response = emailServer.sendMail(req.body.to, req.body.subject, req.body.body);
-
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     res.json(response);
 });
-
 
 router.route('/admin')
 .get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
@@ -148,3 +165,35 @@ router.route('/admin')
 
 
 module.exports = router;
+
+
+//     obj = {
+        //     1: {
+        //         "event" : {
+        //         "Catwalk":"Catwalk",
+        //         "HelpDesk":"HelpDesk",
+        //         "Exhibitors":"Exhibitors",
+        //         "Webinar":"Webinar"
+        //         },
+        //         "role":"host"
+        //     },
+        //     2: {
+        //         "event":{
+        //         "Catwalk":"Fashion Show",
+        //         "HelpDesk":null,
+        //         "Exhibitors":"Exhibitors",
+        //         "Webinar":"Webinar"
+        //         },
+        //         "role":"organizer"
+        //     },
+        //     3: {
+        //         "event":{
+        //         "Catwalk":"Catwalk",
+        //         "HelpDesk":"HelpDesk",
+        //         "Exhibitors":"Shops",
+        //         "Webinar":null
+        //         },
+        //         "role":"attendee"
+        //     }
+
+        // } 

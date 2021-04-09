@@ -27,40 +27,38 @@ const tmp = [{
     "details":"This time of events is 4pm"
 }]
 
-router.route('/user')
+router.route('/user/:userId')
 .get(authenticate.verifyUser, (req, res, next) => {
-    let query = "select * from events"
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        // Result Sequence
+        // rows[0] : All events in which user is a Visitor
+        // rows[1] : All events in which user is an Organizer or OrgAsst
+        // rows[2] : All events in which user is an Exhibitor
+        // rows[3] : All events notification to which user is associated
+        // rows[4] : All the events to which user is not associated by any mean/Upcoming events
+        
+        
+        let dashboardData  = {
+        "totalAttendingEvents": rows[0].length,
+        "totalOrganizeEvents": rows[1].length,
+        "totalStalls": rows[2].length,
+        "totalUpcomingEvents":rows[4].length,
 
-    let returnObjecct  = {
-        "totalOrganizeEvents":2,
-        "totalAttendingEvents":4,
-        "totalUpcomingEvents":104,
-        "totalStalls":1,
-        "notifications":[{
-            "event":"catwalk",
-            "details":"Event has been postpond"
-        }],
-        "organizingEvents":tmp,
-        "attendingEvents":tmp,
-        "myStalls":tmp
+        "attendingEvents": rows[0],
+        "organizingEvents": rows[1],
+        "myStalls": rows[2],
+        "notifications": rows[3],
+        "upcomingEvents": rows[4]
+        }
+
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(dashboardData);
     }
-
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.json(returnObjecct);
-
-
-    // const callback = (err, rows, fields) => {
-    //     if (err) {
-    //       console.log(err)
-    //       return;
-    //     }
-    //     // console.log(rows)
-    //     // console.log(fields);
-    //     res.statusCode = 200;
-    //     res.setHeader('Content-Type', 'application/json');
-    //     res.json(rows);
-    // }
-    // dbHandler.runGetQuery(query, callback);
+    dbHandler.getUserDashboardData(req.params.userId, callback);
 })
 module.exports = router;
