@@ -6,22 +6,47 @@ router.use(bodyParser.json());
 const dbHandler = require('./../dbHandler');
 var authenticate = require('./../authenticate');
 
-router.route('/request')
-.post(authenticate.verifyUser, (req, res, next) => {
-    console.log(req.body);
-    res.statusCode = 200;
+
+router.route('/categories')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
-        res.json([]);
-    // const callback = (err, rows, fields) => {
-    //     if (err) {
-    //       console.log(err)
-    //       return;
-    //     }
-    //     res.statusCode = 200;
-    //     res.setHeader('Content-Type', 'application/json');
-    //     res.json(rows);
-    // }
-    // dbHandler.getEventById(req.params.eventId, callback);
+        res.json(rows);
+    }
+    dbHandler.getCategories('Stall', callback);
 })
 
+router.route('/request')
+.post(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.addEventStall(req.body, callback);
+})
+
+
+router.route('/event/:eventId')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getEventStalls(req.params.eventId, callback);
+})
 module.exports = router;

@@ -35,6 +35,21 @@ const tmp = [{
     "details":"This time of events is 4pm"
 }]
 
+router.route('/categories')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getCategories('Event', callback);
+})
+
+
 router.route('/user')
 .get((req, res, next) => {
     // let query = "select * from events"
@@ -118,8 +133,6 @@ router.route('/user/request')
     // }
     // dbHandler.getEventById(req.params.eventId, callback);
 })
-
-
 
 router.route('/user/options/:eventId')
 .get(authenticate.verifyUser, (req, res, next) => {

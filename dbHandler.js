@@ -50,7 +50,6 @@ exports.getUserDashboardData = function(user_Id, callback){
     // rows[2] : All events in which user is an Exhibitor
     // rows[3] : All events notification to which user is associated
     // rows[4] : All the events to which user is not associated by any mean/Upcoming events
-    
 }
 
 exports.getUpcomingEvents = function(user_Id, callback){
@@ -76,7 +75,7 @@ exports.getEventById = function(eventId, callback){
 }
 
 exports.getEventLobbyControls = function(eventId, userId, callback){
-  let query1 = 'SELECT el.* FROM eventLobby el, event e WHERE e.eventLobby_Id = el.eventLobby_Id AND e.event_Id = ?;'
+  let query1 = 'SELECT el.* FROM eventlobby el, event e WHERE e.eventlobby_Id = el.eventlobby_Id AND e.event_Id = ?;'
   let query2 = "SELECT COUNT(*) > 0 as organizer FROM userrole where event_Id = ? and user_Id = ? and (role_Id = 4 or role_Id = 5)"
   var res = connection.query(query1 + " " + query2, [eventId, eventId, userId], callback);
 }
@@ -147,7 +146,23 @@ exports.removeEventWebinar = function(linkId, eventId, userId, callback){
     });
 }
 
+// Categories
+exports.getCategories = function(type, callback){
+  let query = "SELECT * FROM categories WHERE type = ?";
+  var res = connection.query(query, type, callback);
+}
 
+
+// Stall APIs queries
+exports.addEventStall = function(stallData, callback){
+  let query = 'INSERT INTO stall SET ?';
+  connection.query(query, stallData, callback);
+}
+
+exports.getEventStalls = function(eventId, callback){
+  let query = 'SELECT * FROM stall WHERE event_Id = ?';
+  connection.query(query, eventId, callback);
+}
 
 // No longer used!
 exports.runGetQuery = function (query, callclback){
