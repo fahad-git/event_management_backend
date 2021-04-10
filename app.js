@@ -44,9 +44,8 @@ app.use('/stalls', stallsRouter);
 app.use('/videos', videosRouter);
 app.use('/webinars', webinarRouter);
 
-const path = require('path')
 app.get("*", (req, res) => {
-	res.sendFile(path.resolve(__dirname, 'build', 'index.html')
+	res.sendFile(path.resolve(__dirname, 'build', 'index.html'));
 })
 
 // catch 404 and forward to error handler
