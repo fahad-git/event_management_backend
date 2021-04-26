@@ -102,7 +102,7 @@ router.route('/user/organizing/:userId')
     dbHandler.getOrganizingEventsByUserID(req.params.userId, callback);
 });
 
-router.route('/user/:eventId')
+router.route('/details/:eventId')
 .get(authenticate.verifyUser, (req, res, next) => {
     const callback = (err, rows, fields) => {
         if (err) {
@@ -146,6 +146,20 @@ router.route('/user/options/:eventId')
             res.json(rows);
         }
         dbHandler.getEventLobbyControls(req.params.eventId, req.user.user_Id, callback);
+});
+
+router.route('/user/options/:eventLobbyId')
+.put(authenticate.verifyUser, (req, res, next) => {
+        const callback = (err, rows, fields) => {            
+            if (err) {
+              console.log(err)
+              return;
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(rows);
+        }
+        dbHandler.updateEventLobbyControls(req.params.eventLobbyId, req.body.col, req.body.value, callback);
 });
 
 

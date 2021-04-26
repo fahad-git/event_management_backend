@@ -18,10 +18,15 @@ var videosRouter = require('./routes/videos');
 var webinarRouter = require('./routes/webinars');
 
 var app = express();
-
+// var cons = require('consolidate');
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
+
+// app.engine('html', cons.swig)
+// app.set('views', path.join(__dirname, 'build'));
+// app.set('view engine', 'html');
+
 
 //cross origin resource sharing (CORS) implementation
 app.options('/', cors.corsWithOptions);
@@ -44,9 +49,6 @@ app.use('/stalls', stallsRouter);
 app.use('/videos', videosRouter);
 app.use('/webinars', webinarRouter);
 
-app.get("*", (req, res) => {
-	res.sendFile(path.resolve(__dirname, 'build', 'index.html'));
-})
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

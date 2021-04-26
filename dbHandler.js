@@ -59,7 +59,7 @@ exports.getUpcomingEvents = function(user_Id, callback){
 }
 
 exports.getAllEvents = function(callback){
-  let query = 'SELECT * FROM `event` ORDER BY start_date DESC';
+  let query = 'SELECT * FROM `event` WHERE end_date >= curdate() ORDER BY start_date DESC';
   connection.query(query, callback);
 }
 
@@ -78,6 +78,12 @@ exports.getEventLobbyControls = function(eventId, userId, callback){
   let query1 = 'SELECT el.* FROM eventlobby el, event e WHERE e.eventlobby_Id = el.eventlobby_Id AND e.event_Id = ?;'
   let query2 = "SELECT COUNT(*) > 0 as organizer FROM userrole where event_Id = ? and user_Id = ? and (role_Id = 4 or role_Id = 5)"
   var res = connection.query(query1 + " " + query2, [eventId, eventId, userId], callback);
+}
+
+exports.updateEventLobbyControls = function(eventLobbyId, col, val, callback){
+  let query = 'UPDATE `eventlobby` SET '+col+' = ? WHERE eventLobby_Id = ?;';
+  var res = connection.query(query, [val, eventLobbyId], callback);
+  console.log(res.sql);
 }
 
 //  Video APIs queries
