@@ -165,9 +165,38 @@ exports.addEventStall = function(stallData, callback){
   connection.query(query, stallData, callback);
 }
 
+// this method explicitly add stall add by the organizer
+// It takes two JSON objects 1 for stall table and other for userRole table
+exports.explicitlyAddEventStall = function(stallData, callback){
+  let query1 = 'INSERT INTO userrole SET ?';
+  let query2 = 'INSERT INTO stall SET ?';
+  connection.query(query1 + "; " + query2, [stallData.role, stallData.stall], callback);
+}
+
 exports.getEventStalls = function(eventId, callback){
-  let query = 'SELECT * FROM stall WHERE event_Id = ?';
+  let query = "SELECT * FROM stall WHERE event_Id = ? AND status = 'Active'";
   connection.query(query, eventId, callback);
+}
+
+exports.blockStallFromEvent = function(stallId, callback){
+  let query = "UPDATE `stall` SET `status` = 'Block' WHERE stall_Id = ?";
+  connection.query(query, stallId, callback);
+}
+
+exports.stallByStallId = function(stallId, callback){
+  let query = "SELECT * FROM stall WHERE stall_Id = ?";
+  connection.query(query, stallId, callback);
+}
+
+exports.getStallEmail = function(stallId, callback){
+  let query = "SELECT email FROM stall WHERE stall_Id = ?";
+  connection.query(query, stallId, callback);
+}
+
+// Check If User is available
+exports.checkUserAvailable = function(userId, callback){
+  let query = 'SELECT name FROM user WHERE user_Id = ?';
+  let sql = connection.query(query, userId, callback);
 }
 
 // No longer used!
