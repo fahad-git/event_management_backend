@@ -30,6 +30,7 @@ router.post('/signup', (req, res, next) => {
 
   const callback = (err, result) => {
     if(err) {
+      console.log("Error")
       if(err.code === "ER_DUP_ENTRY"){
         res.statusCode = 409;
         res.setHeader('Content-Type', 'application/json');
@@ -41,11 +42,11 @@ router.post('/signup', (req, res, next) => {
       }
     }
     else {
-      passport.authenticate('local')(req, res, () => {
+      // passport.authenticate('local')(req, res, () => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.json({success: true, status: 'Registration Successful!'});
-      });
+      // });
     }
   }
 
@@ -54,9 +55,9 @@ router.post('/signup', (req, res, next) => {
   dbHandler.registerUser(req.body, callback);
 });
 router.post('/check-username',  (req, res) => {
-    query = "select * from user where username = '" + req.body.username + "';";
-    console.log(req.body);
-    console.log(query)
+    // query = "select * from user where username = '" + req.body.username + "';";
+    // console.log(req.body);
+    // console.log(query)
     const callback = (err, rows, fields) => {
       if(err) {
           res.statusCode = 404;
@@ -73,7 +74,7 @@ router.post('/check-username',  (req, res) => {
       }
     }
 
-    dbHandler.runGetQuery(query, callback);
+    dbHandler.checkUsernameAvailable(req.body, callback);
 });
 
 
@@ -101,6 +102,7 @@ router.post('/login', (req, res) => {
   })(req, res);
 });
 
+
 router.get('/token', authenticate.verifyUser, (req, res) => {
   const user = req.user;
   var token = authenticate.getToken({username: req.user.username});
@@ -123,6 +125,22 @@ router.get('/logout', authenticate.verifyUser, (req, res, next) => {
     next(err);
   }
 });
+
+router.route('/user/profile')
+.put(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.userProfileUpdate(req.user.user_Id, req.body, callback);
+});
+
+
 
 module.exports = router;
 

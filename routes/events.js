@@ -49,6 +49,26 @@ router.route('/categories')
     dbHandler.getCategories('Event', callback);
 })
 
+router.route('/ticket/:eventId')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    let data = {
+        "role_Id":6, //exhibitor
+        "event_Id": req.params.eventId,
+        "user_Id": req.user.user_Id,
+        "status":"Pending"
+    }
+    dbHandler.buyEventTicket(data, callback);
+})
+
 
 router.route('/user')
 .get((req, res, next) => {
@@ -71,6 +91,23 @@ router.route('/user')
     }
     dbHandler.getAllEvents(callback);
 });
+
+router.route('/user/requested')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getRequestedEvents(req.user.user_Id, callback);
+});
+
+
+
 
 router.route('/user/:userId')
 .get((req, res, next) => {
@@ -163,6 +200,37 @@ router.route('/user/options/:eventLobbyId')
 });
 
 
+router.route('/user/images/:eventId')
+.get(authenticate.verifyUser, (req, res, next) => {
+        const callback = (err, rows, fields) => {            
+            if (err) {
+              console.log(err)
+              return;
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(rows);
+        }
+        dbHandler.getEventLobbyImages(req.params.eventId, callback);
+});
+
+
+router.route('/user/images/:eventId')
+.put(authenticate.verifyUser, (req, res, next) => {
+        const callback = (err, rows, fields) => {            
+            if (err) {
+              console.log(err)
+              return;
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(rows);
+        }
+        dbHandler.setEventLobbyImages(req.params.eventId, req.body, callback);
+});
+
+
+
 router.route('/user/chat')
 .post(authenticate.verifyUser, (req, res, next) => {
     const response = emailServer.sendMail(req.body.to, req.body.subject, req.body.body);
@@ -170,6 +238,21 @@ router.route('/user/chat')
     res.setHeader('Content-Type', 'application/json');
     res.json(response);
 });
+
+router.route('/stall/:eventId')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {            
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getStallIdFromEvent(req.params.eventId, req.user.user_Id, callback);
+});
+
 
 router.route('/admin')
 .get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {

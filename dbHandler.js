@@ -1,15 +1,42 @@
 var mysql = require('mysql')
 const config = require('./config');
-var connection = mysql.createConnection(config.sqlConfigurations)
+// var connection = mysql.createConnection(config.sqlConfigurations)
 
-connection.connect(function(err) {
-  if (err) 
-  {
-    console.log(err);
-    return;
-  }
-  console.log("Database Connected Successfully!");
-});
+var connection;
+
+// connection.connect(function(err) {
+//   if (err) 
+//   {
+//     console.log(err);
+//     return;
+//   }
+//   console.log("Database Connected Successfully!");
+// });
+
+function handleDisconnect() {
+  connection = mysql.createConnection(config.sqlConfigurations); // Recreate the connection, since
+                                                  // the old one cannot be reused.
+
+  connection.connect(function(err) {              // The server is either down
+    if(err) {                                     // or restarting (takes a while sometimes).
+      console.log('error when connecting to db:', err);
+      setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
+    }            
+    console.log("Database Connected Successfully!");                         // to avoid a hot loop, and to allow our node script to
+  });                                     // process asynchronous requests in the meantime.
+                                          // If you're also serving http, display a 503 error.
+  connection.on('error', function(err) {
+    console.log('db error', err);
+    if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
+      handleDisconnect();                         // lost due to either server restart, or a
+    } else {                                      // connnection idle timeout (the wait_timeout
+      throw err;                                  // server variable configures this)
+    }
+  });
+}
+
+handleDisconnect();
+
 
 exports.registerUser = function(user, callback){
   // (name, email, username, userType, password, phone, address)
@@ -24,6 +51,12 @@ exports.loginUser = function(username, callback){
   // console.log(res.sql);
 }
 
+exports.userProfileUpdate = function(userId, data, callback){
+  let query = 'UPDATE `user` SET ? WHERE user_Id = ?';
+  var res = connection.query(query, [data, userId], callback);
+}
+
+
 // this function will return user dashboard data
 exports.getUserDashboardData = function(user_Id, callback){
     //  select all events with event_id and user_id
@@ -36,7 +69,8 @@ exports.getUserDashboardData = function(user_Id, callback){
 
     //  select all events with event_id and user_id whose user is exhibitor/Stalls
     let query3 = "SELECT e.* FROM `event` e, (SELECT * FROM `userrole` where user_Id = ?) u where e.event_Id = u.event_Id and e.end_date >= curdate() and role_Id = 6 and u.status = 'Active';"
-    
+    // let query3 = "SELECT s.* FROM stall s, (SELECT * FROM `userrole` where user_Id = ?) u WHERE u.event_Id = s.event_Id AND u.status = 'Active' AND s.user_Id = ?"
+
     // Select all notifications
     let query4 = "SELECT * FROM `notification` where user_id = ? and date >= curdate();";
     //  getting all events that does not belong to a perticular user ie upcomig events
@@ -52,15 +86,32 @@ exports.getUserDashboardData = function(user_Id, callback){
     // rows[4] : All the events to which user is not associated by any mean/Upcoming events
 }
 
+exports.getStallIdFromEvent = function(eventId, userId, callback){
+  let query = "SELECT stall_Id FROM `stall` where event_Id = ? AND user_Id = ?"
+  connection.query(query, [eventId, userId], callback);
+
+}
+
 exports.getUpcomingEvents = function(user_Id, callback){
   // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
-  let query = 'SELECT e.* FROM `event` e where e.event_Id NOT IN (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?)'
+  let query = "SELECT e.* FROM `event` e where e.event_Id NOT IN (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?)"
+  connection.query(query, user_Id, callback);
+}
+
+exports.getRequestedEvents = function(user_Id, callback){
+  // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
+  let query = "SELECT e.*, ur.status FROM `event` e, userrole ur where e.event_Id = ur.event_Id AND ur.status != 'Active'";
   connection.query(query, user_Id, callback);
 }
 
 exports.getAllEvents = function(callback){
   let query = 'SELECT * FROM `event` WHERE end_date >= curdate() ORDER BY start_date DESC';
   connection.query(query, callback);
+}
+
+exports.buyEventTicket = function(data, callback){
+  let query = 'INSERT INTO userrole SET ?';
+  connection.query(query, data, callback);
 }
 
 exports.getOrganizingEventsByUserID = function(user_Id, callback){
@@ -85,6 +136,33 @@ exports.updateEventLobbyControls = function(eventLobbyId, col, val, callback){
   var res = connection.query(query, [val, eventLobbyId], callback);
   console.log(res.sql);
 }
+
+exports.getEventLobbyImages = function(eventId, callback){
+  let query1 = "SELECT eventLobby_Id From event WHERE event_Id = ?"
+  var res = connection.query(query1, [eventId], (err, rows, fields) => {
+    if(err){
+      console.log(err)
+      return;
+    }
+    let eventLobbyId = rows[0]?.eventLobby_Id;
+    let query = 'SELECT * FROM `eventlobby_images` WHERE eventLobby_Id = ?;';
+    var res = connection.query(query, [eventLobbyId], callback);
+  });
+}
+
+exports.setEventLobbyImages = function(eventId, data, callback){
+  let query1 = "SELECT eventLobby_Id From event WHERE event_Id = ?"
+  var res = connection.query(query1, [eventId], (err, rows, fields) => {
+    if(err){
+      console.log(err)
+    }
+    let eventLobbyId = rows[0]?.eventLobby_Id;
+    let query = 'UPDATE `eventlobby_images` SET ? WHERE eventLobby_Id = ?;';
+    var res = connection.query(query, [data, eventLobbyId], callback);
+  });
+}
+
+
 
 //  Video APIs queries
 
@@ -161,8 +239,17 @@ exports.getCategories = function(type, callback){
 
 // Stall APIs queries
 exports.addEventStall = function(stallData, callback){
-  let query = 'INSERT INTO stall SET ?';
-  connection.query(query, stallData, callback);
+  let query2 = "INSERT INTO `stall_images` (`stall_img_id`, `left_up_corner`, `left_bottom_corner`, `center_up`, `center_bottom`, `right_up_corner`, `right_bottom_corner`) VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
+  connection.query(query2, (error, result) => {
+    if (error) {
+      console.log(error)
+      return;
+    }
+    console.log(result.insertId);
+    stallData["stall_img_id"] = result.insertId
+    let query = 'INSERT INTO stall SET ?';
+    connection.query(query, stallData, callback);  
+  });
 }
 
 // this method explicitly add stall add by the organizer
@@ -189,14 +276,63 @@ exports.stallByStallId = function(stallId, callback){
 }
 
 exports.getStallEmail = function(stallId, callback){
-  let query = "SELECT email FROM stall WHERE stall_Id = ?";
+  let query = "SELECT u.email FROM stall s, user u WHERE u.user_Id = s.user_Id AND s.stall_Id = ?";
   connection.query(query, stallId, callback);
 }
+
+exports.updateStallInfo = function(stallId, object, callback){
+  let query = "UPDATE stall SET ? WHERE stall_Id = ?;";
+  connection.query(query, [object, stallId], callback);
+}
+
+exports.getStallProducts = function(stallId, callback){
+  let query = "SELECT * FROM `products` p, product_images pi Where pi.id = p.product_img_id AND p.stall_Id = ?";
+  connection.query(query, [stallId], callback);
+}
+
+
+exports.addStallProduct = function(productData, callback){
+  let query2 = "INSERT INTO `product_images` SET ?"
+  connection.query(query2, [productData.imgs], (error, result) => {
+    if (error) {
+      console.log(error)
+      return;
+    }
+    console.log(result.insertId);
+    productData["product_img_id"] = result.insertId
+    delete productData["imgs"];
+    let query = 'INSERT INTO products SET ?';
+    connection.query(query, productData, callback);  
+  });
+}
+
 
 // Check If User is available
 exports.checkUserAvailable = function(userId, callback){
   let query = 'SELECT name FROM user WHERE user_Id = ?';
   let sql = connection.query(query, userId, callback);
+}
+
+exports.checkStallOwner = function(stallId, userId, callback){
+  let query = 'SELECT stall_Id FROM stall WHERE stall_Id = ? AND user_Id = ?';
+  let sql = connection.query(query, [stallId, userId], callback);
+  console.log(sql.sql)
+}
+
+exports.getStallImages = function(stallId, callback){
+  let query = 'SELECT si.* FROM stall_images si, stall s WHERE si.stall_img_id = s.stall_img_id and s.stall_Id = ?';
+  let sql = connection.query(query, [stallId], callback);
+}
+
+exports.setStallImage = function(stallId, data, callback){
+  let query = 'UPDATE `stall_images` si, stall s SET ? WHERE si.stall_img_id = s.stall_img_id AND s.stall_Id = ?';
+  let sql = connection.query(query, [data, stallId], callback);
+}
+
+// check Username
+exports.checkUsernameAvailable = function(username, callback){
+  let query = 'SELECT * FROM user WHERE ?';
+  let sql = connection.query(query, username, callback);
 }
 
 // No longer used!
