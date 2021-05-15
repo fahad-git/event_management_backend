@@ -7,33 +7,34 @@ const dbHandler = require('./../dbHandler');
 
 var authenticate = require('./../authenticate');
 
-var emailServer = require('./email')
+var emailServer = require('./email');
+const email = require('../emailModule');
 
-const tmp = [{
-    "id":1,
-    "name":"Exams Sites",
-    "date":"10-1-2021",
-    "host":"Mark",
-    "details":"This event is about mannaging your events"
-},{
-    "id":2,
-    "name":"Health Awareness",
-    "date":"10-1-2021",
-    "host":"Ali",
-    "details":"This time of events is 4pm"
-},{
-    "id":3,
-    "name":"Catwalk Show",
-    "date":"10-1-2021",
-    "host":"James",
-    "details":"This time of events is 4pm"
-},{
-    "id":4,
-    "name":"Games Theory",
-    "date":"10-1-2021",
-    "host":"Aqib",
-    "details":"This time of events is 4pm"
-}]
+// const tmp = [{
+//     "id":1,
+//     "name":"Exams Sites",
+//     "date":"10-1-2021",
+//     "host":"Mark",
+//     "details":"This event is about mannaging your events"
+// },{
+//     "id":2,
+//     "name":"Health Awareness",
+//     "date":"10-1-2021",
+//     "host":"Ali",
+//     "details":"This time of events is 4pm"
+// },{
+//     "id":3,
+//     "name":"Catwalk Show",
+//     "date":"10-1-2021",
+//     "host":"James",
+//     "details":"This time of events is 4pm"
+// },{
+//     "id":4,
+//     "name":"Games Theory",
+//     "date":"10-1-2021",
+//     "host":"Aqib",
+//     "details":"This time of events is 4pm"
+// }]
 
 router.route('/categories')
 .get(authenticate.verifyUser, (req, res, next) => {
@@ -61,7 +62,7 @@ router.route('/ticket/:eventId')
         res.json(rows);
     }
     let data = {
-        "role_Id":6, //exhibitor
+        "role_Id":7, //visitor
         "event_Id": req.params.eventId,
         "user_Id": req.user.user_Id,
         "status":"Pending"
@@ -89,25 +90,8 @@ router.route('/user')
         res.setHeader('Content-Type', 'application/json');
         res.json(rows);
     }
-    dbHandler.getAllEvents(callback);
+    dbHandler.getUpcomingEvents(callback);
 });
-
-router.route('/user/requested')
-.get(authenticate.verifyUser, (req, res, next) => {
-    const callback = (err, rows, fields) => {
-        if (err) {
-          console.log(err)
-          return;
-        }
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(rows);
-    }
-    dbHandler.getRequestedEvents(req.user.user_Id, callback);
-});
-
-
-
 
 router.route('/user/:userId')
 .get((req, res, next) => {
@@ -122,7 +106,82 @@ router.route('/user/:userId')
         res.setHeader('Content-Type', 'application/json');
         res.json(rows);
     }
-    dbHandler.getUpcomingEvents(req.params.userId, callback);
+    dbHandler.getAllEvents(req.params.userId, callback);
+});
+
+
+router.route('/user/requested/:user_Id')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getRequestedEvents(req.params.user_Id, callback);
+});
+
+router.route('/admin')
+.get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getUpcomingEventsByAdmin(callback);
+});
+
+
+router.route('/admin/:roleId')
+.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.updateUpcomingEventsByAdmin(req.body, req.params.roleId, callback);
+});
+
+// Organizer APIs
+
+router.route('/organizer')
+.get(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.getUpcomingEventsByOrganizer(callback);
+});
+
+
+router.route('/organizer/:roleId')
+.put(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json(rows);
+    }
+    dbHandler.updateUpcomingEventsByOrganizer(req.body, req.params.roleId, callback);
 });
 
 router.route('/user/organizing/:userId')
@@ -138,6 +197,41 @@ router.route('/user/organizing/:userId')
     }
     dbHandler.getOrganizingEventsByUserID(req.params.userId, callback);
 });
+
+
+
+router.route('/email')
+.post(authenticate.verifyUser, (req, res, next) => {
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        if(!rows[0])
+        {
+          res.statusCode = 404;
+          res.setHeader('Content-Type', 'application/json');
+          res.json("Can not send message");
+          return;
+        }
+        var mailInfo = req.body;
+        mailInfo["to"] = rows[0].email;
+
+        email.sendEmail(mailInfo,  (error, result) => {
+          if (error) {
+            console.log(error)
+            return;
+          }
+  
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.json(result);
+        })
+    }
+    dbHandler.getOrganizerEmail(req.body.event_Id, callback);
+})
+
+
 
 router.route('/details/:eventId')
 .get(authenticate.verifyUser, (req, res, next) => {
@@ -155,20 +249,16 @@ router.route('/details/:eventId')
 
 router.route('/user/request')
 .post(authenticate.verifyUser, (req, res, next) => {
-    console.log(req.body);
-    res.statusCode = 200;
+    const callback = (err, rows, fields) => {
+        if (err) {
+          console.log(err)
+          return;
+        }
+        res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
-        res.json([]);
-    // const callback = (err, rows, fields) => {
-    //     if (err) {
-    //       console.log(err)
-    //       return;
-    //     }
-    //     res.statusCode = 200;
-    //     res.setHeader('Content-Type', 'application/json');
-    //     res.json(rows);
-    // }
-    // dbHandler.getEventById(req.params.eventId, callback);
+        res.json(rows);
+    }
+    dbHandler.addNewEvent(req.body, req.user.user_Id, callback);
 })
 
 router.route('/user/options/:eventId')

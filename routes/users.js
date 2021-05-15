@@ -49,8 +49,6 @@ router.post('/signup', (req, res, next) => {
       // });
     }
   }
-
-  console.log(req.body);
   // dbHandler.runInsertQuery(query, values, callback);
   dbHandler.registerUser(req.body, callback);
 });

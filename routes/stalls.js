@@ -35,7 +35,7 @@ router.route('/request')
         res.json(rows);
     }
     req.body["user_Id"] = req.user.user_Id;
-    dbHandler.addEventStall(req.body, callback);
+    dbHandler.addEventStall(req.body, req.user.user_Id, callback);
 })
 
 

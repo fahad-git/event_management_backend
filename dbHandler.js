@@ -57,6 +57,63 @@ exports.userProfileUpdate = function(userId, data, callback){
   var res = connection.query(query, [data, userId], callback);
 }
 
+// add new event to the database
+exports.addNewEvent = function(eventData, userId, callback){
+  let query1 = 'INSERT INTO eventlobby SET ?';
+  let eventlobby = {
+    "eventLobby_Id":null,
+    "video":"Videos",
+    "links":"Links",
+    "stalls":"Stalls",
+    "helpdesk":"Help Desk"
+  }
+  connection.query(query1, eventlobby, (err1, result) => {
+      if(err1){
+        console.log(err1);
+        return;
+      }
+
+      eventData["eventLobby_Id"] = result.insertId;
+
+      let eventlobbyImg = {
+        "eventlobby_img_Id":null,
+        "eventlobby_Id":result.insertId,
+        "logo1":null,
+        "logo2":null,
+        "logo3":null,
+        "logo4":null,
+        "logo5":null,
+        "side_screen_left":null,
+        "side_screen_right":null
+      }
+
+      let query2 = 'INSERT INTO eventlobby_images SET ?';
+      
+      connection.query(query2, eventlobbyImg, (err2, result) => {
+        if(err2){
+          console.log(err2);
+          return;
+        }
+
+        let query3 = 'INSERT INTO event SET ?';
+        connection.query(query3, eventData, (err3, eventResult) => {
+          if(err3){
+            console.log(err3);
+            return;
+          }
+          let userRoleParams = {
+            "userRole_id": null,
+            "role_Id": 4,
+            "user_Id": userId,
+            "event_Id": eventResult.insertId,
+            "status": "Pending"
+          }
+          let query4 = 'INSERT INTO userrole SET ?';
+          connection.query(query4, userRoleParams, callback);
+        });
+      })
+  });
+}
 
 // this function will return user dashboard data
 exports.getUserDashboardData = function(user_Id, callback){
@@ -93,19 +150,47 @@ exports.getStallIdFromEvent = function(eventId, userId, callback){
 
 }
 
-exports.getUpcomingEvents = function(user_Id, callback){
+exports.getAllEvents = function(user_Id, callback){
   // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
   let query = "SELECT e.* FROM `event` e where e.event_Id NOT IN (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?)"
   connection.query(query, user_Id, callback);
 }
 
-exports.getRequestedEvents = function(user_Id, callback){
+
+exports.getUpcomingEventsByAdmin = function(callback){
   // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
-  let query = "SELECT e.*, ur.status FROM `event` e, userrole ur where e.event_Id = ur.event_Id AND ur.status != 'Active'";
-  connection.query(query, user_Id, callback);
+  let query = "SELECT * FROM event e, userrole u WHERE e.event_Id = u.event_Id AND u.role_Id = 4 AND u.status = 'Pending'"
+  connection.query(query, callback);
 }
 
-exports.getAllEvents = function(callback){
+exports.updateUpcomingEventsByAdmin = function(data, roleId, callback){
+  // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
+  let query = "UPDATE `userrole` SET ? WHERE userRole_id = ?";
+  connection.query(query, [data, roleId], callback);
+}
+
+// Organizer APIS
+
+exports.getUpcomingEventsByOrganizer = function(callback){
+  // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
+  let query = "SELECT * FROM event e, userrole u WHERE e.event_Id = u.event_Id AND (u.role_Id = 7 OR u.role_Id = 6) AND u.status = 'Pending'"
+  connection.query(query, callback);
+}
+
+exports.updateUpcomingEventsByOrganizer = function(data, roleId, callback){
+  // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
+  let query = "UPDATE `userrole` SET ? WHERE userRole_id = ?";
+  connection.query(query, [data, roleId], callback);
+}
+
+exports.getRequestedEvents = function(user_Id, callback){
+  // let query = 'SELECT e.* FROM `event` e, (SELECT DISTINCT event_Id FROM `userrole` where user_Id = ?) u where e.event_Id != u.event_Id';
+  let query = "SELECT * FROM `event` e, userrole ur where e.event_Id = ur.event_Id AND ur.status != 'Active' AND ur.user_Id = ?";
+  let sql = connection.query(query, user_Id, callback);
+  console.log(sql.sql)
+}
+
+exports.getUpcomingEvents = function(callback){
   let query = 'SELECT * FROM `event` WHERE end_date >= curdate() ORDER BY start_date DESC';
   connection.query(query, callback);
 }
@@ -239,17 +324,28 @@ exports.getCategories = function(type, callback){
 
 
 // Stall APIs queries
-exports.addEventStall = function(stallData, callback){
+exports.addEventStall = function(stallData, userId, callback){
   let query2 = "INSERT INTO `stall_images` (`stall_img_id`, `left_up_corner`, `left_bottom_corner`, `center_up`, `center_bottom`, `right_up_corner`, `right_bottom_corner`) VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
   connection.query(query2, (error, result) => {
     if (error) {
       console.log(error)
       return;
     }
-    console.log(result.insertId);
+
     stallData["stall_img_id"] = result.insertId
     let query = 'INSERT INTO stall SET ?';
-    connection.query(query, stallData, callback);  
+    connection.query(query, stallData, (err2, result) => {
+        let userRoleParams = {
+          "userRole_id": null,
+          "role_Id": 6,
+          "user_Id": userId,
+          "event_Id": stallData.event_Id,
+          "status": "Pending"
+        }
+        let query = 'INSERT INTO userrole SET ?';
+        connection.query(query, userRoleParams, callback);
+
+      });  
   });
 }
 
@@ -281,6 +377,12 @@ exports.getStallEmail = function(stallId, callback){
   connection.query(query, stallId, callback);
 }
 
+exports.getOrganizerEmail = function(eventId, callback){
+  let query = "SELECT u.email FROM userrole ur, user u WHERE u.user_Id = ur.user_Id AND ur.role_Id = 4 AND ur.event_Id = ?";
+  connection.query(query, eventId, callback);
+}
+
+
 exports.updateStallInfo = function(stallId, object, callback){
   let query = "UPDATE stall SET ? WHERE stall_Id = ?;";
   connection.query(query, [object, stallId], callback);
@@ -299,7 +401,6 @@ exports.addStallProduct = function(productData, callback){
       console.log(error)
       return;
     }
-    console.log(result.insertId);
     productData["product_img_id"] = result.insertId
     delete productData["imgs"];
     let query = 'INSERT INTO products SET ?';
