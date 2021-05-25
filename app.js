@@ -40,14 +40,22 @@ app.use(passport.initialize());
 // app.use(passport.session());
 
 // app.use(auth);
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/', indexRouter);
+// app.use(express.static(path.join(__dirname, 'public')));
+// app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/events', eventsRouter);
 app.use('/dashboards', dashboardsRouter);
 app.use('/stalls', stallsRouter);
 app.use('/videos', videosRouter);
 app.use('/webinars', webinarRouter);
+
+/* This should be uncomment in production */
+
+const root = require('path').join(__dirname, 'public', 'build')
+app.use(express.static(root));
+app.get("*", (req, res) => {
+    res.sendFile('index.html', { root });
+})
 
 
 // catch 404 and forward to error handler
